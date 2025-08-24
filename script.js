@@ -20,10 +20,7 @@ class EstacionamentoUI {
     }
 
     showLoading(show) {
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.style.display = show ? 'flex' : 'none';
-        }
+        document.getElementById('loading').style.display = show ? 'flex' : 'none';
     }
 
     async carregarVeiculos() {
@@ -46,7 +43,6 @@ class EstacionamentoUI {
 
     renderVeiculos(veiculos) {
         const container = document.getElementById('veiculos-list');
-        if (!container) return;
         
         if (!Array.isArray(veiculos) || veiculos.length === 0) {
             container.innerHTML = `
@@ -68,7 +64,7 @@ class EstacionamentoUI {
                         <span>Total: R$ ${this.calcularTotal(veiculo)}</span>
                     </div>
                 ` : `
-                    <p>Status: <strong style="color: green;">Estacionado</strong></p>
+                    <p>Status: <strong>Estacionado</strong></p>
                     <div class="valor-info">
                         <span>Valor Hora: R$ 10,00</span>
                         <span>Tempo: ${this.calcularTempoDecorrido(veiculo.entrada)}</span>
@@ -80,7 +76,6 @@ class EstacionamentoUI {
 
     renderEstadias(estadias) {
         const container = document.getElementById('estadias-list');
-        if (!container) return;
         
         if (!Array.isArray(estadias) || estadias.length === 0) {
             container.innerHTML = `
@@ -94,7 +89,7 @@ class EstacionamentoUI {
         // Filtrar estadias de hoje
         const hoje = new Date().toLocaleDateString('pt-BR');
         const estadiasHoje = estadias.filter(estadia => 
-            estadia.entrada && new Date(estadia.entrada).toLocaleDateString('pt-BR') === hoje
+            new Date(estadia.entrada).toLocaleDateString('pt-BR') === hoje
         );
 
         if (estadiasHoje.length === 0) {
@@ -209,70 +204,37 @@ class EstacionamentoUI {
 
             await this.api.createVeiculo(veiculoData);
             
-            // ⚡ **ATUALIZAR OS DADOS NA TELA - ISSO É IMPORTANTE!**
-            await this.carregarVeiculos();
-            await this.carregarEstadias();
+            // Recarregar dados
+            await Promise.all([
+                this.carregarVeiculos(),
+                this.carregarEstadias()
+            ]);
             
             // Fechar modal e limpar formulário
             closeModal('novo-veiculo');
             if (placaInput) placaInput.value = '';
             
-            this.mostrarNotificacao('✅ Veículo cadastrado com sucesso!', 'success');
+            alert('Veículo cadastrado com sucesso!');
             
         } catch (error) {
-            this.mostrarNotificacao('❌ Erro ao cadastrar veículo', 'error');
+            alert('Erro ao cadastrar veículo. Verifique se a placa já existe.');
         } finally {
             this.showLoading(false);
         }
     }
 
-    mostrarNotificacao(mensagem, tipo = 'info') {
-        // Criar notificação
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            color: white;
-            z-index: 10000;
-            font-weight: bold;
-            font-size: 14px;
-            ${tipo === 'error' ? 'background: #dc3545;' : ''}
-            ${tipo === 'success' ? 'background: #28a745;' : ''}
-            ${tipo === 'info' ? 'background: #17a2b8;' : ''}
-        `;
-        notification.textContent = mensagem;
-        
-        document.body.appendChild(notification);
-        
-        // Remover após 3 segundos
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                document.body.removeChild(notification);
-            }
-        }, 3000);
-    }
-
     mostrarErro(mensagem) {
-        this.mostrarNotificacao(mensagem, 'error');
+        alert(mensagem);
     }
 }
 
-// Funções globais para modais
+// Funções globais
 function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'block';
-    }
+    document.getElementById(modalId).style.display = 'block';
 }
 
 function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    document.getElementById(modalId).style.display = 'none';
 }
 
 function editarVeiculos() {
@@ -281,40 +243,10 @@ function editarVeiculos() {
 
 function gerarRelatorio() {
     alert('Relatório sendo gerado...');
+    // Aqui você pode implementar a geração de relatório em PDF
 }
-
-// ⚡ **VARIÁVEL GLOBAL para acesso via console**
-let appUI;
 
 // Inicializar a aplicação quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {
-    appUI = new EstacionamentoUI(apiService);
-    window.appUI = appUI; // Disponibiliza globalmente para debugging
+    new EstacionamentoUI(apiService);
 });
-
-// Adicionar estilos para empty-state
-const style = document.createElement('style');
-style.textContent = `
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: #6c757d;
-        font-style: italic;
-    }
-    
-    .empty-state p {
-        font-size: 1.1em;
-        margin-top: 10px;
-    }
-    
-    .valor-info {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px dashed #dee2e6;
-        font-weight: 600;
-        color: #28a745 !important;
-    }
-`;
-document.head.appendChild(style);
